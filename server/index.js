@@ -39,6 +39,11 @@ app.post('/signup', async (req, res) => {
 
         const sanitizedEmail = email.toLowerCase()
 
+        if(sanitizedEmail.split('@')[1] != "umb.edu") {
+            res.status(400).json({error: "Email domain is not allowed"})
+            return
+        }
+        
         const data = {
             user_id: generatedUserId,
             email: sanitizedEmail,
