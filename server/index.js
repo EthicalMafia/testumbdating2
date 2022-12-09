@@ -7,6 +7,7 @@ const cors = require('cors')
 const bcrypt = require('bcrypt')
 require('dotenv').config()
 
+//uri is in a dot env file since online it says that is more secure
 const uri = process.env.URI
 
 const app = express()
@@ -18,11 +19,10 @@ app.get('/', (req, res) => {
     res.json('Hello to my app')
 })
 
-// Sign up to the Database
+// How users will sign up to the Database
 app.post('/signup', async (req, res) => {
     const client = new MongoClient(uri)
     const {email, password} = req.body
-
     const generatedUserId = uuidv4()
     const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -30,20 +30,15 @@ app.post('/signup', async (req, res) => {
         await client.connect()
         const database = client.db('app-data')
         const users = database.collection('users')
-
-        const existingUser = await users.findOne({email})
-
+        const existingUser = await users.findOne({email}
         if (existingUser) {
             return res.status(409).send('User already exists. Please login')
         }
-
         const sanitizedEmail = email.toLowerCase()
-
         if(sanitizedEmail.split('@')[1] != "umb.edu") {
             res.status(400).json({error: "Email domain is not allowed"})
             return
         }
-        
         const data = {
             user_id: generatedUserId,
             email: sanitizedEmail,
@@ -51,7 +46,6 @@ app.post('/signup', async (req, res) => {
         }
 
         const insertedUser = await users.insertOne(data)
-
         const token = jwt.sign(insertedUser, sanitizedEmail, {
             expiresIn: 60 * 24
         })
@@ -73,18 +67,14 @@ app.post('/login', async (req, res) => {
         await client.connect()
         const database = client.db('app-data')
         const users = database.collection('users')
-
         const user = await users.findOne({email})
-
         const correctPassword = await bcrypt.compare(password, user.hashed_password)
-
         if (user && correctPassword) {
             const token = jwt.sign(user, email, {
                 expiresIn: 60 * 24
             })
             res.status(201).json({token, userId: user.user_id})
         }
-
         res.status(400).json('Invalid Credentials')
 
     } catch (err) {
@@ -94,7 +84,7 @@ app.post('/login', async (req, res) => {
     }
 })
 
-// Get individual user
+// Get each individual user
 app.get('/user', async (req, res) => {
     const client = new MongoClient(uri)
     const userId = req.query.userId
@@ -113,16 +103,14 @@ app.get('/user', async (req, res) => {
     }
 })
 
-// Update User with a match
+// Update users with a match when both swipe right on each other
 app.put('/addmatch', async (req, res) => {
     const client = new MongoClient(uri)
     const {userId, matchedUserId} = req.body
-
     try {
         await client.connect()
         const database = client.db('app-data')
         const users = database.collection('users')
-
         const query = {user_id: userId}
         const updateDocument = {
             $push: {matches: {user_id: matchedUserId}}
@@ -134,16 +122,14 @@ app.put('/addmatch', async (req, res) => {
     }
 })
 
-// Get all Users by userIds in the Database
+// Getting all the users by userIds in the Database
 app.get('/users', async (req, res) => {
     const client = new MongoClient(uri)
     const userIds = JSON.parse(req.query.userIds)
-
     try {
         await client.connect()
         const database = client.db('app-data')
         const users = database.collection('users')
-
         const pipeline =
             [
                 {
@@ -154,7 +140,6 @@ app.get('/users', async (req, res) => {
                     }
                 }
             ]
-
         const foundUsers = await users.aggregate(pipeline).toArray()
 
         res.json(foundUsers)
@@ -164,11 +149,10 @@ app.get('/users', async (req, res) => {
     }
 })
 
-// Get all the Gendered Users in the Database
+// Getting all the gendered Users in the Database
 app.get('/gendered-users', async (req, res) => {
     const client = new MongoClient(uri)
     const gender = req.query.gender
-
     try {
         await client.connect()
         const database = client.db('app-data')
@@ -182,18 +166,15 @@ app.get('/gendered-users', async (req, res) => {
     }
 })
 
-// Update a User in the Database
+// Update a User in the Database after going through the onboarding process
 app.put('/user', async (req, res) => {
     const client = new MongoClient(uri)
     const formData = req.body.formData
-
     try {
         await client.connect()
         const database = client.db('app-data')
         const users = database.collection('users')
-
         const query = {user_id: formData.user_id}
-
         const updateDocument = {
             $set: {
                 first_name: formData.first_name,
@@ -208,17 +189,14 @@ app.put('/user', async (req, res) => {
                 matches: formData.matches
             },
         }
-
         const insertedUser = await users.updateOne(query, updateDocument)
-
         res.json(insertedUser)
-
     } finally {
         await client.close()
     }
 })
 
-// Get Messages by from_userId and to_userId
+// Get all messages by from_userId and to_userId 
 app.get('/messages', async (req, res) => {
     const {userId, correspondingUserId} = req.query
     const client = new MongoClient(uri)
@@ -227,7 +205,6 @@ app.get('/messages', async (req, res) => {
         await client.connect()
         const database = client.db('app-data')
         const messages = database.collection('messages')
-
         const query = {
             from_userId: userId, to_userId: correspondingUserId
         }
@@ -238,16 +215,14 @@ app.get('/messages', async (req, res) => {
     }
 })
 
-// Add a Message to our Database
+// Adding messages to our Mongo database
 app.post('/message', async (req, res) => {
     const client = new MongoClient(uri)
     const message = req.body.message
-
     try {
         await client.connect()
         const database = client.db('app-data')
         const messages = database.collection('messages')
-
         const insertedMessage = await messages.insertOne(message)
         res.send(insertedMessage)
     } finally {
